@@ -1,0 +1,23 @@
+/* Small-screen overrides. Must load last. */
+@media (max-width: 520px) {
+  h1 {
+    font-size: 1.35rem;
+  }
+  .card {
+    padding: 14px;
+  }
+  .problem {
+    font-size: 2rem;
+  }
+  .stroop {
+    font-size: 2.4rem;
+  }
+  .hm {
+    width: 12px;
+    height: 12px;
+  }
+  .peg {
+    width: 30px;
+    height: 30px;
+  }
+}

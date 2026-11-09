@@ -1,0 +1,60 @@
+/* Design tokens: colours, shadows, radius. Light and dark themes. */
+:root {
+  --bg: #f5f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef0f6;
+  --text: #151923;
+  --muted: #5d6577;
+  --border: #dde1ea;
+  --accent: #4f46e5;
+  --accent-2: #eef0ff;
+  --on-accent: #fff;
+  --good: #15803d;
+  --good-bg: #dcfce7;
+  --ok: #b45309;
+  --ok-bg: #fef3c7;
+  --bad: #b91c1c;
+  --bad-bg: #fee2e2;
+  --math: #ea580c;
+  --logic: #4f46e5;
+  --memory: #0d9488;
+  --decision: #c026d3;
+  --spatial: #0284c7;
+  --critical: #be123c;
+  --t-correct: #16a34a;
+  --t-present: #ca8a04;
+  --t-absent: #7c8497;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 16px rgba(16, 24, 40, 0.06);
+  --radius: 14px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1117;
+    --surface: #171b24;
+    --surface-2: #212734;
+    --text: #e8ebf2;
+    --muted: #9aa3b5;
+    --border: #2b3242;
+    --accent: #818cf8;
+    --accent-2: #232743;
+    --on-accent: #0e1117;
+    --good: #4ade80;
+    --good-bg: #14321f;
+    --ok: #fbbf24;
+    --ok-bg: #3a2c0c;
+    --bad: #f87171;
+    --bad-bg: #3b1515;
+    --math: #fb923c;
+    --logic: #818cf8;
+    --memory: #2dd4bf;
+    --decision: #e879f9;
+    --spatial: #38bdf8;
+    --critical: #fb7185;
+    --t-correct: #15803d;
+    --t-present: #a16207;
+    --t-absent: #3f4657;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+}
