@@ -11,7 +11,9 @@ export function genTarget(rng, lvl) {
     const large = rng.shuffle([25, 50, 75, 100]).slice(0, nLarge);
     const small = Array.from({ length: count - nLarge }, () => rng.int(1, 10));
     const nums = rng.shuffle([...large, ...small]);
-    const k = rng.int(Math.min(3, count), count);
+    // higher levels need longer chains: no quick two-step answers
+    const minK = lvl >= 8 ? 5 : lvl >= 5 ? 4 : 3;
+    const k = rng.int(Math.min(minK, count), count);
     const use = rng.shuffle(nums).slice(0, k);
     let v = use[0];
     const steps = [];
@@ -65,7 +67,8 @@ export default defineGame({
   ],
   levelInfo: (l) => {
     const c = l <= 3 ? 4 : l <= 7 ? 5 : 6;
-    return `${c} numbers, targets up to ${l <= 2 ? 60 : l <= 4 ? 150 : l <= 6 ? 400 : 999}`;
+    const k = l >= 8 ? 5 : l >= 5 ? 4 : 3;
+    return `${c} numbers, targets up to ${l <= 2 ? 60 : l <= 4 ? 150 : l <= 6 ? 400 : 999}, solutions use ${k}+ numbers`;
   },
   tip: 'Work backwards: find a multiple of a big number near the target (e.g. 4 × 25 = 100), then fix the remainder with the small numbers.',
   mount(root, ctx) {

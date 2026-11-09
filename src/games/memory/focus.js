@@ -93,11 +93,15 @@ export default defineGame({
       done = true;
       const mean = (a) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null);
       const okRt = (f) => mean(log.filter((x) => x.ok && f(x)).map((x) => x.rt));
+      const acc = (f) => {
+        const xs = log.filter(f);
+        return xs.length ? Math.round((xs.filter((x) => x.ok).length / xs.length) * 100) + '%' : '—';
+      };
       const rows = [
-        ['Matching words', okRt((x) => !x.inc)],
-        ['Conflicting words', okRt((x) => x.inc)],
+        ['Matching words', (x) => !x.inc],
+        ['Conflicting words', (x) => x.inc],
       ];
-      if (switching) rows.push(['Right after a rule switch', okRt((x) => x.sw)]);
+      if (switching) rows.push(['Right after a rule switch', (x) => x.sw]);
       ctx.finish({
         score: clamp(((correct - 2 * wrong) / 35) * 100),
         summary: `${correct} correct, ${wrong} wrong.`,
@@ -107,8 +111,11 @@ export default defineGame({
           el(
             'table',
             {},
-            el('tr', {}, el('th', {}, 'Average response time'), el('th', {}, '')),
-            rows.map(([k, v]) => el('tr', {}, el('td', {}, k), el('td', {}, v == null ? '—' : v + ' ms'))),
+            el('tr', {}, el('th', {}, ''), el('th', {}, 'Avg time (right)'), el('th', {}, 'Accuracy')),
+            rows.map(([k, f]) => {
+              const v = okRt(f);
+              return el('tr', {}, el('td', {}, k), el('td', {}, v == null ? '—' : v + ' ms'), el('td', {}, acc(f)));
+            }),
           ),
           el(
             'p',

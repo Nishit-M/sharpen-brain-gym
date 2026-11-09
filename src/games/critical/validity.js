@@ -177,9 +177,51 @@ export const PROPS = [
     f: (p, q) => [`If ${p}, then ${q}.`, `Therefore: if ${q}, then ${p}.`],
     why: 'Invalid (converse): “if P then Q” does not mean “if Q then P”.',
   },
+  {
+    name: 'Contrapositive',
+    min: 4,
+    valid: true,
+    f: (p, q) => [`If ${p}, then ${q}.`, `Therefore: if ${negC(q)}, then ${negC(p)}.`],
+    why: 'Valid (contrapositive): “if P then Q” always means “if not Q then not P” — they say the same thing.',
+  },
+  {
+    name: 'Inverse',
+    min: 4,
+    valid: false,
+    f: (p, q) => [`If ${p}, then ${q}.`, `Therefore: if ${negC(p)}, then ${negC(q)}.`],
+    why: 'Invalid (inverse): without P, Q might still happen for some other reason.',
+  },
+  {
+    name: 'Only if (forward)',
+    min: 7,
+    valid: true,
+    f: (p, q) => [`${capS(p)} only if ${q}.`, `${capS(p)}.`, `Therefore: ${q}.`],
+    why: 'Valid: “P only if Q” means “if P, then Q”. P is true, so Q must be.',
+  },
+  {
+    name: 'Only if (backward)',
+    min: 7,
+    valid: false,
+    f: (p, q) => [`${capS(p)} only if ${q}.`, `${capS(q)}.`, `Therefore: ${p}.`],
+    why: 'Invalid: “P only if Q” means “if P, then Q”. Q is needed for P, but Q alone doesn’t guarantee P.',
+  },
+  {
+    name: 'Unless (valid)',
+    min: 9,
+    valid: true,
+    f: (p, q) => [`${capS(p)} unless ${q}.`, `${capS(negC(q))}.`, `Therefore: ${p}.`],
+    why: 'Valid: “P unless Q” means “if not Q, then P”. Q is false, so P follows.',
+  },
+  {
+    name: 'Unless (invalid)',
+    min: 9,
+    valid: false,
+    f: (p, q) => [`${capS(p)} unless ${q}.`, `${capS(q)}.`, `Therefore: ${negC(p)}.`],
+    why: 'Invalid: “P unless Q” only promises P when Q is false. When Q is true, P could go either way.',
+  },
 ];
-export function genProp(rng, wantValid) {
-  const form = rng.pick(PROPS.filter((f) => f.valid === wantValid));
+export function genProp(rng, wantValid, lvl = 10) {
+  const form = rng.pick(PROPS.filter((f) => f.valid === wantValid && (f.min || 1) <= lvl));
   const [p, q, r] = rng.shuffle(CLAUSES);
   return { lines: form.f(p, q, r), valid: form.valid, why: form.why };
 }
@@ -198,10 +240,12 @@ export default defineGame({
     l <= 3
       ? 'mostly if-then arguments'
       : l <= 6
-        ? 'if-then arguments and syllogisms with real words'
+        ? 'if-then (incl. contrapositives) and syllogisms with real words'
         : l <= 7
-          ? 'nonsense words (no gut feeling to lean on)'
-          : 'chains of 3 premises, nonsense words',
+          ? 'nonsense words, “only if” arguments'
+          : l <= 8
+            ? 'chains of 3 premises, nonsense words, “only if”'
+            : 'chains of 3 premises, “only if” and “unless”',
   tip: 'To test validity, try to build a counterexample: a world where every premise is true but the conclusion is false. If you can, it’s invalid. Watch out for “Some A are B” — it never tells you about all of them.',
   mount(root, ctx) {
     const N = 12,
@@ -210,7 +254,7 @@ export default defineGame({
     while (items.length < N) {
       const want = ctx.rng.chance(0.5);
       const useSyl = L >= 4 && ctx.rng.chance(L >= 7 ? 0.75 : 0.5);
-      const it = useSyl ? genSyllogism(ctx.rng, L, want) : genProp(ctx.rng, want);
+      const it = useSyl ? genSyllogism(ctx.rng, L, want) : genProp(ctx.rng, want, L);
       if (it) items.push(it);
     }
     let i = 0,

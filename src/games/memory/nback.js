@@ -126,6 +126,24 @@ export default defineGame({
       const a = rates(pos, rp, P.n);
       const b = P.dual ? rates(let_, rl, P.n) : null;
       const d = b ? (a.d + b.d) / 2 : a.d;
+      // per-step outcome: hit, missed match, false alarm, or a correct rejection
+      const strip = (s, resp, label) =>
+        el(
+          'div',
+          {},
+          el('span', { class: 'muted small' }, label),
+          el(
+            'div',
+            { class: 'nb-strip' },
+            s.slice(P.n).map((v, j) => {
+              const t = j + P.n;
+              const match = v === s[t - P.n];
+              const cls = match ? (resp[t] ? 'hit' : 'missed') : resp[t] ? 'fa' : '';
+              const sym = match ? (resp[t] ? '✓' : '○') : resp[t] ? '✗' : '';
+              return el('span', { class: cls, title: `Step ${t + 1}` }, sym);
+            }),
+          ),
+        );
       const row = (label, r) => el('tr', {}, el('td', {}, label), el('td', {}, `${r.h} / ${r.t}`), el('td', {}, r.fa));
       ctx.finish({
         score: clamp(d * 100),
@@ -140,6 +158,22 @@ export default defineGame({
             row('Position', a),
             b ? row('Letter', b) : null,
           ),
+          strip(pos, rp, 'Position, step by step'),
+          b ? strip(let_, rl, 'Letter, step by step') : null,
+          el('p', { class: 'muted small' }, '✓ caught a match · ○ missed a match · ✗ false alarm'),
+          a.t - a.h > a.fa
+            ? el(
+                'p',
+                { class: 'muted small' },
+                'You missed more matches than you false-alarmed: try saying the last N items under your breath every step.',
+              )
+            : a.fa > 1
+              ? el(
+                  'p',
+                  { class: 'muted small' },
+                  'Several false alarms: only press when you are sure — a miss costs no more than a wrong press.',
+                )
+              : null,
         ),
       });
     }

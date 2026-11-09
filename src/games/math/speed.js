@@ -42,17 +42,31 @@ export function genProblem(rng, lvl) {
       c = r(1, 50);
     return { q: `${a} × ${b} + ${c}`, a: a * b + c };
   };
+  const missMul = (m1, m2) => {
+    const a = r(2, m1),
+      b = r(2, m2);
+    return { q: `? × ${b} = ${a * b}`, a };
+  };
+  const missAdd = (m) => {
+    const a = r(10, m),
+      b = r(10, m);
+    return { q: `${a} + ? = ${a + b}`, a: b };
+  };
+  const root = () => {
+    const a = r(11, 30);
+    return { q: `√${a * a}`, a };
+  };
   const table = [
     [() => add(10), () => sub(20)],
     [() => add(30), () => sub(40), () => mul(5, 5)],
     [() => add(60), () => sub(80), () => mul(9, 9)],
-    [() => add(99), () => sub(99), () => mul(12, 9), () => div(9, 9)],
-    [() => add(199), () => sub(199), () => mul(12, 12), () => div(12, 12)],
-    [() => sub(299), () => mul(19, 9), () => div(12, 15), pct],
-    [() => add(499), () => sub(499), () => mul(25, 9), () => div(15, 20), pct, sq],
-    [() => sub(999), () => mul(30, 12), () => div(20, 25), pct, sq, combo],
-    [() => mul(49, 19), () => div(25, 40), pct, sq, combo, () => add(999)],
-    [() => mul(99, 19), () => mul(39, 29), () => div(30, 50), pct, sq, combo],
+    [() => add(99), () => sub(99), () => mul(12, 9), () => div(9, 9), () => missAdd(50)],
+    [() => add(199), () => sub(199), () => mul(12, 12), () => div(12, 12), () => missMul(9, 9)],
+    [() => sub(299), () => mul(19, 9), () => div(12, 15), pct, () => missMul(12, 12)],
+    [() => add(499), () => sub(499), () => mul(25, 9), () => div(15, 20), pct, sq, () => missAdd(300)],
+    [() => sub(999), () => mul(30, 12), () => div(20, 25), pct, sq, combo, root, () => missMul(15, 12)],
+    [() => mul(49, 19), () => div(25, 40), pct, sq, combo, () => add(999), root, () => missMul(25, 12)],
+    [() => mul(99, 19), () => mul(39, 29), () => div(30, 50), pct, sq, combo, () => missMul(30, 25), () => sub(9999)],
   ];
   let p;
   do {
@@ -68,7 +82,7 @@ export default defineGame({
   blurb: '60-second mental arithmetic sprint.',
   howTo: [
     'Solve as many problems as you can in 60 seconds.',
-    'Just type the answer — it checks automatically once you’ve typed enough digits.',
+    'Just type the answer — it checks automatically once you’ve typed enough digits. For “?” problems, type the missing number.',
     'Wrong answers cost a point. Press Skip (or Enter) to pass on a problem (counts as wrong).',
     '20 net correct = 100 points.',
   ],
@@ -77,13 +91,13 @@ export default defineGame({
       'add/subtract within 20',
       'within 50, small times tables',
       'within 100, times tables',
-      '2-digit sums, division',
-      'sums to 200, 12× tables',
+      '2-digit sums, division, missing numbers',
+      'sums to 200, 12× tables, missing factors',
       'percentages, 2-digit × 1-digit',
       'squares, bigger division',
-      '3-term problems',
+      '3-term problems, square roots',
       'larger multiplication',
-      '2-digit × 2-digit',
+      '2-digit × 2-digit, 4-digit subtraction',
     ][l - 1],
   tip: 'Break problems apart: 47 × 6 = 40×6 + 7×6 = 240 + 42. For percentages, find 10% first and scale.',
   mount(root, ctx) {
@@ -92,6 +106,7 @@ export default defineGame({
       correct = 0,
       wrong = 0,
       done = false;
+    const misses = [];
     const tm = timer(60, finish);
     const qEl = el('div', { class: 'problem' }, p.q);
     const aEl = el('div', { class: 'answer' });
@@ -139,6 +154,7 @@ export default defineGame({
         return;
       }
       if (k === 'Enter') {
+        misses.push({ q: p.q, a: p.a, got: 'skipped' });
         wrong++;
         flash('wrong');
         next();
@@ -154,6 +170,7 @@ export default defineGame({
         flash('right');
         setTimeout(next, 120);
       } else if (input.length >= ans.length) {
+        misses.push({ q: p.q, a: p.a, got: input });
         wrong++;
         lock = true;
         flash('wrong');
@@ -162,7 +179,25 @@ export default defineGame({
     }
     function finish() {
       done = true;
-      ctx.finish({ score: clamp((correct - wrong) * 5), summary: `${correct} correct, ${wrong} wrong in 60 seconds.` });
+      ctx.finish({
+        score: clamp((correct - wrong) * 5),
+        summary: `${correct} correct, ${wrong} wrong in 60 seconds.`,
+        details: misses.length
+          ? el(
+              'div',
+              { class: 'details' },
+              el('b', {}, 'Ones to review'),
+              el(
+                'table',
+                {},
+                el('tr', {}, el('th', {}, 'Problem'), el('th', {}, 'Answer'), el('th', {}, 'You')),
+                misses
+                  .slice(-8)
+                  .map((m) => el('tr', {}, el('td', {}, m.q), el('td', {}, el('b', {}, m.a)), el('td', {}, m.got))),
+              ),
+            )
+          : null,
+      });
     }
     const off = onKeys((e) => {
       if (/^[0-9]$/.test(e.key) || e.key === 'Backspace' || e.key === 'Enter') {

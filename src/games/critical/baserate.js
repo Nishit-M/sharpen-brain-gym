@@ -21,6 +21,15 @@ export const SCEN = [
     unit: 'emails',
   },
   {
+    min: 4,
+    setup: (p, s, f) =>
+      `${p}% of athletes at a meet use a banned drug. The test detects ${s}% of users, and wrongly flags ${f}% of clean athletes.`,
+    q: 'An athlete fails the test. How likely is it they really used the drug?',
+    pos: 'use the drug',
+    neg: 'are clean',
+    unit: 'athletes',
+  },
+  {
     min: 5,
     setup: (p, s, f) =>
       `${p}% of card payments are fraud. The bank’s alarm triggers on ${s}% of fraud, and on ${f}% of honest payments.`,
@@ -37,6 +46,15 @@ export const SCEN = [
     pos: 'are faulty',
     neg: 'are good',
     unit: 'parts',
+  },
+  {
+    min: 7,
+    setup: (p, s, f) =>
+      `${p}% of job applicants would be great hires. An interview spots ${s}% of the great ones, but also rates ${f}% of the rest as great.`,
+    q: 'The interview rates someone as great. How likely is it they really are?',
+    pos: 'are great hires',
+    neg: 'are not',
+    unit: 'applicants',
   },
   {
     min: 8,
@@ -59,6 +77,8 @@ export function genBase(rng, lvl) {
       f = 100 - s;
     }
     const post = ((p * s) / (p * s + (100 - p) * f)) * 100;
+    // higher levels: answer options sit closer together, so estimates must be sharper
+    const gapMin = lvl >= 8 ? 5 : 8;
     const ans = Math.round(post);
     if (ans < 2 || ans > 97) continue;
     // options: correct, the test accuracy (classic error), and two others, all well separated
@@ -80,9 +100,9 @@ export function genBase(rng, lvl) {
     ]);
     for (const c of cand) {
       if (opts.length >= 4) break;
-      if (opts.every((o) => Math.abs(o - c) >= 8) && c > 0 && c < 100) opts.push(c);
+      if (opts.every((o) => Math.abs(o - c) >= gapMin) && c > 0 && c < 100) opts.push(c);
     }
-    if (opts.length < 4 || Math.abs(ans - s) < 8) continue;
+    if (opts.length < 4 || Math.abs(ans - s) < gapMin) continue;
     const pop = 1000;
     const sick = (pop * p) / 100,
       tp = (sick * s) / 100,

@@ -127,12 +127,26 @@ export default defineGame({
       const { w, v } = totals();
       const val = w > cap ? 0 : v;
       const bestList = items.filter((_, j) => bestMask & (1 << j)).map((x) => x.nm);
+      const inBest = (j) => !!(bestMask & (1 << j));
+      const add = items.filter((_, j) => inBest(j) && !on.has(j)).map((x) => x.nm);
+      const drop = items.filter((_, j) => !inBest(j) && on.has(j)).map((x) => x.nm);
+      const bestW = items.reduce((t, x, j) => t + (inBest(j) ? x.w : 0), 0);
+      const fix =
+        val === best
+          ? null
+          : el(
+              'p',
+              {},
+              drop.length ? `Take out: ${drop.join(', ')}. ` : '',
+              add.length ? `Put in: ${add.join(', ')}. ` : '',
+              `That uses ${bestW} of ${cap} kg.`,
+            );
       ctx.finish({
         score: val === best ? 100 : clamp(100 - ((best - val) / best) * 400),
         summary:
           (timeout ? 'Time’s up. ' : '') +
           (w > cap ? 'Over the weight limit — nothing counts.' : `You packed value ${val} of a possible ${best}.`),
-        details: el('div', { class: 'details' }, el('b', {}, `Best pack (value ${best}): `), bestList.join(', ')),
+        details: el('div', { class: 'details' }, el('b', {}, `Best pack (value ${best}): `), bestList.join(', '), fix),
       });
     }
     draw();

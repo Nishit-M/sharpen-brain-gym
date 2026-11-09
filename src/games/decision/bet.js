@@ -64,7 +64,9 @@ export default defineGame({
     const bets = Array.from({ length: N }, () => genBet(ctx.rng, ctx.level));
     let i = 0,
       right = 0,
-      bank = 1000;
+      bank = 1000,
+      missedEV = 0,
+      lostEV = 0;
     const info = el('div', { class: 'statline' });
     const card = el('div', { class: 'bet-card' });
     const fb = el('div', { class: 'feedback' });
@@ -97,6 +99,8 @@ export default defineGame({
       const good = b.EV > 0,
         ok = take === good;
       if (ok) right++;
+      else if (good) missedEV += b.EV;
+      else lostEV -= b.EV;
       let outcome = 'You passed.';
       if (take) {
         const won = ctx.rng.next() < b.p;
@@ -135,9 +139,21 @@ export default defineGame({
         score: (right / N) * 100,
         summary: `${right} of ${N} good decisions. Coins: ${bank} (started with 1000).`,
         details: el(
-          'p',
-          { class: 'details muted' },
-          'Your coin total includes luck; your score does not. Over many bets, good decisions win out.',
+          'div',
+          { class: 'details' },
+          missedEV || lostEV
+            ? el(
+                'p',
+                {},
+                missedEV ? `Passing on good bets gave up ${missedEV.toFixed(0)} coins of expected value. ` : '',
+                lostEV ? `Taking bad bets cost ${lostEV.toFixed(0)} coins of expected value.` : '',
+              )
+            : el('p', {}, 'Every call was +EV. That is how you win over the long run.'),
+          el(
+            'p',
+            { class: 'muted' },
+            'Your coin total includes luck; your score does not. Over many bets, good decisions win out.',
+          ),
         ),
       });
     }

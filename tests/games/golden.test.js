@@ -13,6 +13,9 @@
  *   (they rendered identical to other options).
  * - mentalmap@3/5/7/9: recorded with the "never end on a turn" fix; these
  *   levels hung forever before it.
+ * - 2026-11-09: "Same or Mirror" (rotate) removed and Cube Fold added at the
+ *   end of the spatial group, which reshuffles the daily set; deeper content
+ *   in target, speed, pattern, validity, fallacy and baserate.
  */
 import fs from 'node:fs';
 import path from 'node:path';

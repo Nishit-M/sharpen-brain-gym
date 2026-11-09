@@ -2,19 +2,20 @@
 import { describe, expect, it } from 'vitest';
 import { makeRng } from '../../src/core/rng.js';
 import { genBase } from '../../src/games/critical/baserate.js';
-import { checkValid, genProp, genSyllogism } from '../../src/games/critical/validity.js';
+import { PROPS, checkValid, genProp, genSyllogism } from '../../src/games/critical/validity.js';
 import { genBag } from '../../src/games/decision/bag.js';
 import { genBet } from '../../src/games/decision/bet.js';
 import { genPair } from '../../src/games/decision/calibrate.js';
 import { allCodes, feedback } from '../../src/games/logic/codebreaker.js';
 import { genLogic, perms } from '../../src/games/logic/logicgrid.js';
+import { RULES } from '../../src/games/logic/pattern.js';
 import { evalExpr, genEquation, grade } from '../../src/games/math/equation.js';
 import { genProblem } from '../../src/games/math/speed.js';
 import { genTarget } from '../../src/games/math/target.js';
 import { rates, stream } from '../../src/games/memory/nback.js';
 import { MM, genRoute } from '../../src/games/spatial/mentalmap.js';
-import { SHEET, genFold, unfold } from '../../src/games/spatial/paperfold.js';
-import { genShape } from '../../src/games/spatial/rotate.js';
+import { SHEET, genFold, unfold, unfoldStages } from '../../src/games/spatial/paperfold.js';
+import { fold, genQuestion, isNet, viewKind } from '../../src/games/spatial/cubefold.js';
 import { GAMES } from '../../src/games/index.js';
 
 const LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -51,6 +52,15 @@ describe('math', () => {
         const { nums, target, steps } = genTarget(r, l);
         expect(steps.at(-1)).toMatch(new RegExp(`= ${target}$`));
         expect(nums).not.toContain(target);
+      }
+    }
+  });
+
+  it('pattern rules produce whole numbers for the terms shown', () => {
+    for (const R of RULES) {
+      for (const r of seeds(10)) {
+        const g = R.gen(r);
+        for (let i = 0; i <= (R.show || 5); i++) expect(Number.isInteger(g.f(i)), g.rule).toBe(true);
       }
     }
   });
@@ -133,6 +143,20 @@ describe('spatial', () => {
     ]);
   });
 
+  it('the step-by-step unfold explanation ends at the right answer', () => {
+    for (const l of LEVELS) {
+      const p = genFold(makeRng(`stages-${l}`), l);
+      const key = (hs) =>
+        hs
+          .map((h) => h.join())
+          .sort()
+          .join(';');
+      const stages = unfoldStages(p);
+      expect(stages).toHaveLength(p.steps.length);
+      expect(key(stages.at(-1).holes)).toBe(key(p.options[p.correct]));
+    }
+  });
+
   it('paper-fold options are distinct and include the answer once', () => {
     for (const l of LEVELS) {
       const { options, correct } = genFold(makeRng(`fold-${l}`), l);
@@ -149,8 +173,77 @@ describe('spatial', () => {
     }
   });
 
-  it('rotation shapes are connected and have the requested size', () => {
-    for (const k of [5, 6, 7, 8]) expect(genShape(makeRng(k), k)).toHaveLength(k);
+  it('cube folding finds exactly the 11 cube nets among the 35 hexominoes', () => {
+    // every fixed hexomino, reduced to its free form (rotations + reflections)
+    const norm = (cs) => {
+      const mx = Math.min(...cs.map((c) => c[0]));
+      const my = Math.min(...cs.map((c) => c[1]));
+      return cs.map(([x, y]) => [x - mx, y - my]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    };
+    const canon = (cs) => {
+      const forms = [];
+      let cur = cs;
+      for (let r = 0; r < 4; r++) {
+        cur = cur.map(([x, y]) => [y, -x]);
+        forms.push(norm(cur), norm(cur.map(([x, y]) => [-x, y])));
+      }
+      return forms.map((f) => f.join(';')).sort()[0];
+    };
+    let shapes = new Map([['0,0', [[0, 0]]]]);
+    for (let n = 1; n < 6; n++) {
+      const next = new Map();
+      for (const cs of shapes.values())
+        for (const [x, y] of cs)
+          for (const [dx, dy] of [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+          ]) {
+            if (cs.some((c) => c[0] === x + dx && c[1] === y + dy)) continue;
+            const ns = norm([...cs, [x + dx, y + dy]]);
+            next.set(canon(ns), ns);
+          }
+      shapes = next;
+    }
+    expect(shapes.size).toBe(35);
+    expect([...shapes.values()].filter(isNet)).toHaveLength(11);
+    // a straight strip of four wraps around: 1st and 3rd faces are opposite
+    const n = fold([
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [3, 0],
+      [1, 1],
+      [1, -1],
+    ]);
+    expect(n[2]).toEqual([0, 0, -1]);
+  });
+
+  it('cube-fold questions have one right answer and impossible distractors', () => {
+    for (const l of LEVELS) {
+      for (const r of seeds(6)) {
+        for (const type of ['opp', 'fits', 'cube']) {
+          const q = genQuestion(r, l, type);
+          if (type === 'fits') {
+            expect(isNet(q.cells)).toBe(q.valid);
+            continue;
+          }
+          expect(isNet(q.cells)).toBe(true);
+          if (type === 'opp') {
+            const ns = fold(q.cells);
+            expect(ns[q.answer].map((v) => -v || 0)).toEqual(ns[q.from]);
+            expect(q.options).toContain(q.answer);
+            expect(new Set(q.options).size).toBe(4);
+          } else {
+            expect(q.options).toHaveLength(4);
+            const kinds = q.options.map((o) => viewKind(q.normals, o.t));
+            expect(kinds.filter((k) => k === 'ok')).toHaveLength(1);
+            expect(kinds[q.answer]).toBe('ok');
+          }
+        }
+      }
+    }
   });
 
   it('mental-map routes exist at every level and never end on a turn (regression: levels 3/5/7/9 hung)', () => {
@@ -184,6 +277,16 @@ describe('critical', () => {
         if (s) expect(s.valid).toBe(want);
       }
       expect(genProp(makeRng(`prop-${want}`), want).valid).toBe(want);
+    }
+  });
+
+  it('if-then forms only appear from their unlock level', () => {
+    for (const l of LEVELS) {
+      const allowed = new Set(PROPS.filter((f) => (f.min || 1) <= l).map((f) => f.why));
+      for (const r of seeds(20)) {
+        const it = genProp(r, r.chance(0.5), l);
+        expect(allowed.has(it.why)).toBe(true);
+      }
     }
   });
 

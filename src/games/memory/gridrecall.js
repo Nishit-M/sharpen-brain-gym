@@ -8,18 +8,24 @@ export default defineGame({
   blurb: 'Memorise the lit squares, then tap them back.',
   howTo: [
     'Some squares light up briefly. Then tap all of them, in any order.',
+    'From level 4, every other round is a SEQUENCE round: squares light one at a time, and you tap them back in the same order.',
     'Get it right and the next pattern is one square bigger; miss and it shrinks by one.',
     '8 rounds. Score = rounds passed.',
   ],
   levelInfo: (l) => {
     const s = l <= 3 ? 4 : l <= 7 ? 5 : 6;
-    return `${s}×${s} grid, starting with ${2 + l} squares`;
+    return `${s}×${s} grid, starting with ${2 + l} squares${l >= 4 ? ', sequence rounds' : ''}`;
   },
   tip: 'Don’t memorise squares one by one — see the shape. Group them into chunks (“an L in the corner, a pair in the middle”). Chunking is how memory experts beat their span.',
   mount(root, ctx) {
     const size = ctx.level <= 3 ? 4 : ctx.level <= 7 ? 5 : 6,
       ROUNDS = 8;
+    const seqRounds = ctx.level >= 4;
     let count = Math.min(size * size - 3, 2 + ctx.level),
+      seqCount = Math.max(3, ctx.level - 1),
+      order = [],
+      isSeq = false,
+      seqWins = 0,
       round = 0,
       wins = 0,
       best = 0,
@@ -40,55 +46,82 @@ export default defineGame({
       cells.forEach((c) => (c.className = 'cell'));
       msg.textContent = '';
       msg.className = 'msg';
-      target = new Set(ctx.rng.shuffle([...Array(size * size).keys()]).slice(0, count));
+      isSeq = seqRounds && round % 2 === 0;
+      const n = isSeq ? seqCount : count;
+      order = ctx.rng.shuffle([...Array(size * size).keys()]).slice(0, n);
+      target = new Set(order);
       info.innerHTML = '';
-      info.append(el('span', {}, `Round ${round} of ${ROUNDS}`), el('span', {}, el('b', {}, count), ' squares'));
-      phase = 'show';
-      target.forEach((i) => cells[i].classList.add('lit'));
-      timers.push(
-        setTimeout(
-          () => {
-            cells.forEach((c) => c.classList.remove('lit'));
-            phase = 'input';
-            msg.className = 'msg good';
-            msg.textContent = 'Your turn';
-          },
-          700 + count * 150,
-        ),
+      info.append(
+        el('span', {}, `Round ${round} of ${ROUNDS}`),
+        el('span', {}, isSeq ? el('b', { class: 'gr-seq' }, 'IN ORDER · ') : '', el('b', {}, n), ' squares'),
       );
+      phase = 'show';
+      const yourTurn = () => {
+        cells.forEach((c) => c.classList.remove('lit'));
+        phase = 'input';
+        msg.className = 'msg good';
+        msg.textContent = isSeq ? 'Your turn — same order' : 'Your turn';
+      };
+      if (!isSeq) {
+        target.forEach((i) => cells[i].classList.add('lit'));
+        timers.push(setTimeout(yourTurn, 700 + count * 150));
+        return;
+      }
+      order.forEach((i, j) => {
+        timers.push(setTimeout(() => cells[i].classList.add('lit'), j * 650));
+        timers.push(setTimeout(() => cells[i].classList.remove('lit'), j * 650 + 500));
+      });
+      timers.push(setTimeout(yourTurn, order.length * 650 + 200));
+    }
+    function fail(i) {
+      cells[i].classList.add('bad');
+      order.forEach((j, k) => {
+        if (!found.has(j)) {
+          cells[j].classList.add('miss');
+          if (isSeq) cells[j].textContent = k + 1;
+        }
+      });
+      if (isSeq) seqCount = Math.max(2, seqCount - 1);
+      else count = Math.max(2, count - 1);
+      nextRound(false);
     }
     function tap(i) {
       if (phase !== 'input' || found.has(i)) return;
-      if (target.has(i)) {
-        found.add(i);
-        cells[i].classList.add('ok');
-        if (found.size === target.size) {
-          wins++;
-          best = Math.max(best, count);
-          count = Math.min(size * size - 2, count + 1);
-          nextRound(true);
-        }
+      const want = isSeq ? order[found.size] === i : target.has(i);
+      if (!want) return fail(i);
+      found.add(i);
+      cells[i].classList.add('ok');
+      if (isSeq) cells[i].textContent = found.size;
+      if (found.size < target.size) return;
+      wins++;
+      if (isSeq) {
+        seqWins++;
+        seqCount = Math.min(9, seqCount + 1);
       } else {
-        cells[i].classList.add('bad');
-        target.forEach((j) => {
-          if (!found.has(j)) cells[j].classList.add('miss');
-        });
-        count = Math.max(2, count - 1);
-        nextRound(false);
+        best = Math.max(best, count);
+        count = Math.min(size * size - 2, count + 1);
       }
+      nextRound(true);
     }
     function nextRound(ok) {
       phase = 'wait';
       msg.className = 'msg' + (ok ? ' good' : '');
-      msg.textContent = ok ? '✓ Perfect' : '✗ Missed — shaded squares were in the pattern';
+      msg.textContent = ok
+        ? '✓ Perfect'
+        : isSeq
+          ? '✗ Wrong square — the numbers show the order'
+          : '✗ Missed — shaded squares were in the pattern';
       timers.push(
         setTimeout(
           () => {
             if (round >= ROUNDS)
               return ctx.finish({
                 score: (wins / ROUNDS) * 100,
-                summary: `${wins} of ${ROUNDS} rounds. Biggest pattern recalled: ${best || '—'} squares.`,
+                summary:
+                  `${wins} of ${ROUNDS} rounds. Biggest pattern recalled: ${best || '—'} squares.` +
+                  (seqRounds ? ` Sequence rounds: ${seqWins} of ${ROUNDS / 2}.` : ''),
               });
+            cells.forEach((c) => (c.textContent = ''));
             startRound();
           },
           ok ? 700 : 1500,

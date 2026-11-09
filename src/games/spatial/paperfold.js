@@ -138,6 +138,17 @@ const holesSvg = (r, holes) =>
     'pf-svg',
   );
 
+/** The unfolding, one fold at a time (last fold first). */
+export function unfoldStages(p) {
+  const out = [];
+  let hs = p.punches;
+  for (const st of p.steps.slice().reverse()) {
+    hs = unfold(hs, [st]);
+    out.push({ reg: st.before, holes: hs });
+  }
+  return out;
+}
+
 export default defineGame({
   id: 'paperfold',
   skill: 'spatial',
@@ -203,8 +214,27 @@ export default defineGame({
       btn.classList.add(ok ? 'right' : 'wrongpick');
       opts.children[p.correct].classList.add('right');
       fb.innerHTML = '';
+      const stages = unfoldStages(p);
       fb.append(
         el('div', { class: ok ? 'good' : 'bad' }, ok ? '✓ Correct' : `✗ The answer was ${'ABCD'[p.correct]}`),
+        el(
+          'div',
+          { class: 'muted small' },
+          'Unfolding it, last fold first — each unfold mirrors the holes across the fold line:',
+        ),
+        el(
+          'div',
+          { class: 'pf-seq' },
+          el('div', { class: 'pf-step' }, holesSvg(p.reg, p.punches), el('span', { class: 'muted small' }, 'Punched')),
+          stages.map((s, j) =>
+            el(
+              'div',
+              { class: 'pf-step' },
+              holesSvg(s.reg, s.holes),
+              el('span', { class: 'muted small' }, `Unfold ${j + 1}`),
+            ),
+          ),
+        ),
         el(
           'button',
           {

@@ -433,6 +433,38 @@
 .cell.bad {
   background: var(--bad);
 }
+.gr-seq {
+  color: var(--memory);
+}
+.nb-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 6px 0;
+}
+.nb-strip span {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.nb-strip .hit {
+  background: var(--good);
+  color: #fff;
+}
+.nb-strip .missed {
+  background: color-mix(in srgb, var(--bad) 45%, var(--surface-2));
+  color: var(--text);
+}
+.nb-strip .fa {
+  background: var(--bad);
+  color: #fff;
+}
 .cell.miss {
   background: color-mix(in srgb, var(--memory) 40%, var(--surface-2));
 }
@@ -610,21 +642,90 @@ button.cell {
 }
 
 /* spatial */
-.mr-pair {
+.cf-prompt {
+  text-align: center;
+  font-weight: 600;
+  margin: 4px 0 8px;
+}
+.cf-glyph {
+  font-size: 1.3em;
+  line-height: 1;
+  vertical-align: -0.1em;
+}
+.cf-fig {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.cf-net {
+  width: min(100%, 300px);
+  max-height: 260px;
+}
+.cf-cell {
+  fill: var(--surface-2);
+  stroke: var(--muted);
+  stroke-width: 0.03;
+}
+.cf-cell.cf-from {
+  fill: color-mix(in srgb, var(--spatial) 30%, var(--surface-2));
+  stroke: var(--spatial);
+  stroke-width: 0.07;
+}
+.cf-cell.cf-to {
+  fill: var(--good-bg);
+  stroke: var(--good);
+  stroke-width: 0.07;
+}
+.cf-cell.cf-clash {
+  fill: var(--bad-bg);
+  stroke: var(--bad);
+  stroke-width: 0.07;
+}
+.cf-sym {
+  font-size: 0.56px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.cf-sym-sm {
+  font-size: 0.52px;
+}
+.cf-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.cf-opts.cubes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  max-width: 420px;
-  margin: 8px auto 0;
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 480px;
+  margin: 0 auto;
 }
-.mr-svg {
+.cf-choice {
+  min-width: 64px;
+  font-size: 1.1rem;
+}
+.cf-wide {
+  min-width: 140px;
+}
+.cf-cube {
   width: 100%;
-  aspect-ratio: 1;
-  background: var(--surface-2);
-  border-radius: 12px;
+  height: auto;
+  aspect-ratio: 1 / 1.1;
 }
-.mr-shape rect {
-  fill: var(--spatial);
+.cf-face {
+  stroke: var(--text);
+  stroke-width: 0.03;
+  stroke-linejoin: round;
+}
+.cf-face.top {
+  fill: var(--surface);
+}
+.cf-face.left {
+  fill: var(--surface-2);
+}
+.cf-face.right {
+  fill: color-mix(in srgb, var(--surface-2) 75%, var(--text));
 }
 .pf-seq {
   display: flex;

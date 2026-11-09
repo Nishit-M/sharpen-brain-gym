@@ -65,6 +65,21 @@ export const FALLACIES = {
     name: 'Appeal to nature',
     def: 'Assuming something is good because it is “natural” (or bad because it isn’t).',
   },
+  ignorance: {
+    min: 9,
+    name: 'Appeal to ignorance',
+    def: 'Claiming something is true because it hasn’t been proven false (or false because it hasn’t been proven true).',
+  },
+  cherry: {
+    min: 9,
+    name: 'Cherry picking',
+    def: 'Pointing only to the evidence that supports a claim while ignoring the evidence against it.',
+  },
+  scotsman: {
+    min: 9,
+    name: 'No true Scotsman',
+    def: 'Dodging a counterexample by redefining the group so the example “doesn’t count”.',
+  },
 };
 export const ARGS = [
   ['adhom', 'Rahul says we should cut office energy use, but he drives a huge car, so his proposal is nonsense.'],
@@ -118,6 +133,24 @@ export const ARGS = [
   ['nature', 'This supplement is all-natural, so it can’t have side effects.'],
   ['nature', 'Humans didn’t evolve to use phones, so they must be bad for us.'],
   ['nature', 'Medicine is chemicals; herbs are natural, so herbs are always the better treatment.'],
+  ['adhom', 'Of course the new tax plan is bad — it was written by a bunch of out-of-touch economists.'],
+  ['straw', 'She wants stricter rules for food stalls. So she thinks street food should be wiped out entirely?'],
+  ['dilemma', 'Either you buy a house before 30 or you’ll be renting forever.'],
+  [
+    'slope',
+    'If we let one customer return an item late, everyone will expect free returns forever and we’ll go bankrupt.',
+  ],
+  ['bandwagon', 'All my friends have switched to this phone, so it must be the best one.'],
+  ['authority', 'A popular film actor says this stock will double, so it’s a sure thing.'],
+  ['ignorance', 'Nobody has ever proved that this charm doesn’t bring good luck, so it does.'],
+  ['ignorance', 'Scientists can’t explain every detail of how this works, so the whole theory must be wrong.'],
+  ['ignorance', 'There’s no evidence the new hire made the mistake, so it must have been the old team.'],
+  ['cherry', 'This fund is great — look at its returns in 2021! (It lost money in the four other years.)'],
+  ['cherry', 'The brochure quotes the three five-star reviews and none of the forty one-star ones.'],
+  ['cherry', 'It snowed heavily this week, so global warming clearly isn’t happening.'],
+  ['scotsman', 'No real cricket fan would leave a match early. Ravi left early? Then he’s not a real fan.'],
+  ['scotsman', 'True entrepreneurs never take a salary. She took one, so she was never a true entrepreneur.'],
+  ['scotsman', 'No genuine yoga practitioner gets back pain. If you do, you weren’t doing real yoga.'],
 ];
 
 export default defineGame({
@@ -128,7 +161,7 @@ export default defineGame({
   howTo: [
     'Read the short argument. Pick the reasoning error it commits.',
     'After each answer you’ll see the definition — that’s how you learn them.',
-    '10 arguments. New fallacy types unlock at levels 4 and 7.',
+    '10 arguments. New fallacy types unlock at levels 4, 7 and 9.',
   ],
   levelInfo: (l) => `${Object.values(FALLACIES).filter((f) => f.min <= l).length} fallacy types`,
   tip: 'Ask two questions of any argument: “Is this actually about the claim?” (catches personal attacks, red herrings, whataboutism) and “Does the evidence really reach that far?” (catches generalisations, false cause, slippery slopes).',
@@ -143,6 +176,7 @@ export default defineGame({
     let i = 0,
       right = 0,
       busy = false;
+    const missed = [];
     const info = el('div', { class: 'statline' });
     const card = el('div', { class: 'arg-card' });
     const opts = el('div', { class: 'choice-grid' });
@@ -168,6 +202,7 @@ export default defineGame({
       const q = qs[i],
         ok = k === q.f;
       if (ok) right++;
+      else missed.push({ q, k });
       btn.classList.add(ok ? 'hit' : 'miss');
       [...opts.children].forEach((b, j) => {
         if (q.opts[j] === q.f) b.classList.add('hit');
@@ -187,6 +222,26 @@ export default defineGame({
                 ctx.finish({
                   score: (right / qs.length) * 100,
                   summary: `${right} of ${qs.length} fallacies spotted.`,
+                  details: missed.length
+                    ? el(
+                        'div',
+                        { class: 'details' },
+                        el('b', {}, 'Ones to review'),
+                        el(
+                          'ul',
+                          {},
+                          missed.map(({ q, k }) =>
+                            el(
+                              'li',
+                              {},
+                              `“${q.text}” — `,
+                              el('b', {}, FALLACIES[q.f].name),
+                              ` (you said ${FALLACIES[k].name})`,
+                            ),
+                          ),
+                        ),
+                      )
+                    : null,
                 });
               else show();
             },

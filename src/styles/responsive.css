@@ -20,4 +20,8 @@
     width: 30px;
     height: 30px;
   }
+  .cf-opts.cubes {
+    grid-template-columns: repeat(2, minmax(0, 150px));
+    justify-content: center;
+  }
 }

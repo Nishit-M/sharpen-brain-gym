@@ -61,6 +61,24 @@ export const RULES = [
     },
   },
   {
+    min: 4,
+    gen: (r) => {
+      const a = r.int(1, 5);
+      return { f: (i) => (a * 64) / 2 ** i, rule: 'Halve each time' };
+    },
+  },
+  {
+    min: 5,
+    gen: (r) => {
+      const a = r.int(80, 120),
+        d = r.int(1, 3);
+      return {
+        f: (i) => a - (d * i * (i + 1)) / 2,
+        rule: `Subtract a growing amount (−${d}, −${2 * d}, −${3 * d}, …)`,
+      };
+    },
+  },
+  {
     min: 5,
     show: 6,
     gen: (r) => {
@@ -105,6 +123,15 @@ export const RULES = [
         f: (i) => (i % 2 === 0 ? a + d1 * (i / 2) : b + d2 * ((i - 1) / 2)),
         rule: `Two interleaved sequences: one goes +${d1}, the other ${d2}`,
       };
+    },
+  },
+  {
+    min: 7,
+    gen: (r) => {
+      const c = r.chance(0.5) ? 1 : -1;
+      const s = [r.int(2, 4)];
+      for (let i = 1; i < 10; i++) s.push(s[i - 1] * 3 + c);
+      return { f: (i) => s[i], rule: `Multiply by 3, then ${c > 0 ? 'add' : 'subtract'} 1` };
     },
   },
   {
@@ -167,17 +194,20 @@ export const RULES = [
   },
 ];
 
+const signed = (d) => (d >= 0 ? '+' + d : '−' + -d);
+
 export default defineGame({
   id: 'pattern',
   skill: 'logic',
   name: 'Pattern Next',
   blurb: 'Spot the rule and give the next number.',
   howTo: [
-    'Each round shows a sequence of numbers. Type the next one.',
-    'After each answer you’ll see the hidden rule.',
+    'Each round shows a sequence of numbers. Type the missing one — usually the next, but from level 6 a gap can be in the middle.',
+    'After each answer you’ll see the hidden rule, with every term written out.',
     '6 sequences per game. Score = share correct.',
   ],
-  levelInfo: (l) => `rules up to tier ${l} (${RULES.filter((r) => r.min <= l).length} rule types)`,
+  levelInfo: (l) =>
+    `rules up to tier ${l} (${RULES.filter((r) => r.min <= l).length} rule types)${l >= 6 ? ', gaps mid-sequence' : ''}`,
   tip: 'Write the differences between terms. If they aren’t constant, take differences of differences, or check ratios. Alternating patterns show up when every other term behaves.',
   mount(root, ctx) {
     const pool = RULES.filter((r) => r.min <= ctx.level);
@@ -190,12 +220,15 @@ export default defineGame({
       used.add(R);
       const g = R.gen(ctx.rng),
         show = R.show || 5;
-      const seq = Array.from({ length: show }, (_, i) => g.f(i));
-      qs.push({ seq, ans: g.f(show), rule: g.rule });
+      const seq = Array.from({ length: show + 1 }, (_, i) => g.f(i));
+      // from level 6, some sequences hide a middle term instead of the next one
+      const hide = ctx.level >= 6 && ctx.rng.chance(0.35) ? ctx.rng.int(2, show - 1) : show;
+      qs.push({ seq, hide, ans: seq[hide], rule: g.rule });
     }
     let qi = 0,
       correct = 0,
       answered = false;
+    const missed = [];
     const prog = el('div', { class: 'statline' });
     const seqEl = el('div', { class: 'seq' });
     const input = el('input', {
@@ -223,8 +256,7 @@ export default defineGame({
         el('span', {}, 'Correct ', el('b', {}, correct)),
       );
       seqEl.innerHTML = '';
-      q.seq.forEach((v) => seqEl.append(el('span', {}, v)));
-      seqEl.append(el('span', { class: 'q' }, '?'));
+      q.seq.forEach((v, j) => seqEl.append(j === q.hide ? el('span', { class: 'q' }, '?') : el('span', {}, v)));
       input.value = '';
       input.disabled = false;
       fb.innerHTML = '';
@@ -239,6 +271,18 @@ export default defineGame({
           return ctx.finish({
             score: (correct / qs.length) * 100,
             summary: `${correct} of ${qs.length} patterns cracked.`,
+            details: missed.length
+              ? el(
+                  'div',
+                  { class: 'details' },
+                  el('b', {}, 'Rules you missed'),
+                  el(
+                    'ul',
+                    {},
+                    missed.map((q) => el('li', {}, `${q.seq.join(', ')} — ${q.rule}`)),
+                  ),
+                )
+              : null,
           });
         return show();
       }
@@ -251,13 +295,24 @@ export default defineGame({
       const q = qs[qi],
         ok = +v === q.ans;
       if (ok) correct++;
+      else missed.push(q);
       answered = true;
       input.disabled = true;
-      seqEl.lastChild.textContent = q.ans;
+      const gap = seqEl.children[q.hide];
+      gap.textContent = q.ans;
       fb.innerHTML = '';
       fb.append(
         el('div', { class: ok ? 'good' : 'bad' }, ok ? '✓ Correct' : `✗ It was ${q.ans}`),
         el('div', { class: 'muted' }, 'Rule: ' + q.rule),
+        el(
+          'div',
+          { class: 'muted small' },
+          'Differences: ' +
+            q.seq
+              .slice(1)
+              .map((v, j) => signed(v - q.seq[j]))
+              .join(', '),
+        ),
       );
       btn.textContent = qi + 1 >= qs.length ? 'See results' : 'Next →';
       btn.focus();

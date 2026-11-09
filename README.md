@@ -8,7 +8,7 @@ A daily brain workout you can install as an app (PWA). There are 18 games across
 | Logic             | Codebreaker · Logic Grid · Pattern Next      |
 | Memory & focus    | N-Back · Grid Recall · Focus Filter          |
 | Decisions         | Bet or Pass · Pack the Bag · Sure or Not     |
-| Spatial           | Same or Mirror · Paper Fold · Mental Map     |
+| Spatial           | Paper Fold · Mental Map · Cube Fold          |
 | Critical thinking | Valid or Not · Fallacy Spotter · Base Rate   |
 
 - **Daily workout:** one game per skill, chosen by date. Everyone gets the same puzzles all day. Your streak counts the days you finish the full set.

@@ -22,8 +22,8 @@ import bet from './decision/bet.js';
 import calibrate from './decision/calibrate.js';
 
 import mentalmap from './spatial/mentalmap.js';
+import cubefold from './spatial/cubefold.js';
 import paperfold from './spatial/paperfold.js';
-import rotate from './spatial/rotate.js';
 
 import baserate from './critical/baserate.js';
 import fallacy from './critical/fallacy.js';
@@ -42,9 +42,9 @@ export const GAMES = Object.freeze([
   bet,
   bag,
   calibrate,
-  rotate,
   paperfold,
   mentalmap,
+  cubefold,
   validity,
   fallacy,
   baserate,
